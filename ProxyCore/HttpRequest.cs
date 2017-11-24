@@ -10,8 +10,8 @@ namespace ProxyCore {
 		public HeaderDictionary Headers { get; private set; }
 		public byte[] Body { get; set; }
 		
-		protected async Task ReadFrom(Stream stream) {
-			HeaderText = ""; 
+		protected async Task<bool> ReadFrom(Stream stream) {
+			HeaderText = "";
 			Headers = new HeaderDictionary();
 			var first = true;
 			while(true) {
@@ -34,11 +34,14 @@ namespace ProxyCore {
 				}
 				HeaderText += line;
 			}
+			if(HeaderText.Length == 0)
+				return false;
 			var clen = Headers.Get("Content-Length");
 			if(clen != null && int.TryParse(clen, out var plen)) {
 				Body = new byte[plen];
 				await stream.ReadAsync(Body, 0, plen);
 			}
+			return true;
 		}
 
 		protected virtual string ParseFirst(string line) {
@@ -54,7 +57,8 @@ namespace ProxyCore {
 
 		public static async Task<HttpRequest> Read(Stream stream) {
 			var req = new HttpRequest();
-			await req.ReadFrom(stream);
+			if(!await req.ReadFrom(stream))
+				return null;
 			return req;
 		}
 
@@ -82,9 +86,10 @@ namespace ProxyCore {
 	}
 
 	public class HttpResponse : HttpChunk {
-		public new static async Task<HttpResponse> Read(Stream stream) {
+		public static async Task<HttpResponse> Read(Stream stream) {
 			var resp = new HttpResponse();
-			await resp.ReadFrom(stream);
+			if(!await resp.ReadFrom(stream))
+				return null;
 			return resp;
 		}
 

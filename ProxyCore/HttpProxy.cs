@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -58,11 +59,13 @@ namespace ProxyCore {
 				if(resp == null)
 					return;
 
-				await cstream.WriteAsync(resp.HeaderText);
-				if(resp.Body != null && resp.Body.Length > 0)
-					await cstream.WriteAsync(resp.Body);
-				
-				break;
+				try {
+					await cstream.WriteAsync(resp.HeaderText);
+					if(resp.Body != null && resp.Body.Length > 0)
+						await cstream.WriteAsync(resp.Body);
+				} catch(IOException) {
+					break;
+				}
 			}
 			WriteLine($"Connection from {client.Client.RemoteEndPoint} terminated");
 		}
