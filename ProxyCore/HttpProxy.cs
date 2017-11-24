@@ -2,17 +2,18 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading.Tasks;
 using static System.Console;
 
 namespace ProxyCore {
 	public class HttpProxy {
 		public virtual async Task<bool> PreConnect(TcpClient client) => await Task.FromResult(true);
-		public virtual async Task<string> PreResolve(string hostname) => await Task.FromResult(hostname);
 		public virtual async Task<HttpRequest> PreRequest(HttpRequest request) => await Task.FromResult(request);
-		public virtual async Task<HttpRequest> PostRequest(HttpRequest request) => await Task.FromResult(request);
+		public virtual async Task<Tuple<string, ushort>> PreResolve(Tuple<string, ushort> host) => await Task.FromResult(host);
+		public virtual async Task PostRequest(HttpRequest request, bool success) => await Task.FromResult(request);
 		public virtual async Task<HttpResponse> PreResponse(HttpResponse response) => await Task.FromResult(response);
-		public virtual async Task<HttpResponse> PostResponse(HttpResponse response) => await Task.FromResult(response);
+		public virtual async Task PostResponse(HttpResponse response) => await Task.FromResult(response);
 
 		X509Certificate _serverCertificate;
 		IPAddress _listenAddress;
@@ -31,20 +32,51 @@ namespace ProxyCore {
 					var client = await listener.AcceptTcpClientAsync();
 					if(await PreConnect(client) != true)
 						return;
-					Task.Factory.StartNew(async () => await ClientLoop(client), TaskCreationOptions.LongRunning);
+					Task.Factory.StartNewSafe(async () => await ClientLoop(client), TaskCreationOptions.LongRunning);
 				}
 			}, TaskCreationOptions.LongRunning);
 		}
 
-		private async Task ClientLoop(TcpClient client) {
+		async Task ClientLoop(TcpClient client) {
 			WriteLine($"Accepted client connection from {client.Client.RemoteEndPoint} on {_listenAddress}:{_port}");
 			var cstream = client.GetStream();
 			while(true) {
-				var req = await new HttpRequest().Read(cstream);
+				var req = await HttpRequest.Read(cstream);
+				WriteLine(req);
 				if(req == null)
 					break;
+				req = await PreRequest(req);
+				if(req == null)
+					continue;
+				
+				var resp = await SendReceiveRequest(req);
+				await PostRequest(req, resp != null);
+				WriteLine(resp);
+				if(resp == null)
+					return;
+				resp = await PreResponse(resp);
+				if(resp == null)
+					return;
+
+				await cstream.WriteAsync(resp.HeaderText);
+				if(resp.Body != null && resp.Body.Length > 0)
+					await cstream.WriteAsync(resp.Body);
+				
+				break;
 			}
 			WriteLine($"Connection from {client.Client.RemoteEndPoint} terminated");
+		}
+
+		async Task<HttpResponse> SendReceiveRequest(HttpRequest req) {
+			var host = await PreResolve(req.TargetHost);
+			var conn = new TcpClient(host.Item1, host.Item2);
+			var cstream = conn.GetStream();
+			await cstream.WriteAsync(req.HeaderText);
+			if(req.Body != null && req.Body.Length != 0)
+				await cstream.WriteAsync(req.Body, 0, req.Body.Length);
+
+			var resp = await HttpResponse.Read(cstream);
+			return resp;
 		}
 	}
 }
