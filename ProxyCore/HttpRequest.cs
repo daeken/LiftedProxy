@@ -6,11 +6,13 @@ using static System.Console;
 
 namespace ProxyCore {
 	public class HttpChunk {
+		public DateTime DateTime { get; set; }
 		public string HeaderText { get; set; }
 		public HeaderDictionary Headers { get; private set; }
 		public byte[] Body { get; set; }
 		
 		protected async Task<bool> ReadFrom(Stream stream) {
+			DateTime = DateTime.UtcNow;
 			HeaderText = "";
 			Headers = new HeaderDictionary();
 			var first = true;
@@ -39,7 +41,13 @@ namespace ProxyCore {
 			var clen = Headers.Get("Content-Length");
 			if(clen != null && int.TryParse(clen, out var plen)) {
 				Body = new byte[plen];
-				await stream.ReadAsync(Body, 0, plen);
+				var total = 0;
+				while(total < plen) {
+					var size = await stream.ReadAsync(Body, total, plen - total);
+					total += size;
+					if(size == 0)
+						break;
+				}
 			}
 			return true;
 		}
@@ -53,7 +61,7 @@ namespace ProxyCore {
 		public string Method { get; set; }
 		public string Uri { get; set; }
 
-		public Tuple<string, ushort> TargetHost { get; private set; }
+		public (string Host, ushort Port) TargetHost { get; private set; }
 
 		public static async Task<HttpRequest> Read(Stream stream) {
 			var req = new HttpRequest();
@@ -75,7 +83,7 @@ namespace ProxyCore {
 				host = temp[0];
 				port = ushort.Parse(temp[1]);
 			}
-			TargetHost = Tuple.Create(host, port);
+			TargetHost = (host, port);
 
 			return Method + " " + line.Substring(Method.Length + 1 + suri[0].Length + suri[1].Length + suri[2].Length + 2);
 		}

@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using System.Transactions;
 using ProxyCore;
 using static System.Console;
 
@@ -19,8 +20,8 @@ namespace LiftedProxy {
 			return await Task.FromResult(request);
 		}
 
-		public override async Task<Tuple<string, ushort>> PreResolve(Tuple<string, ushort> host, HttpRequest request) {
-			return await Task.FromResult(host);
+		public override async Task<(string Host, ushort Port)> PreResolve((string Host, ushort Port) target, HttpRequest request) {
+			return await Task.FromResult(target);
 		}
 
 		public override async Task PostRequest(HttpRequest request, bool success) {

@@ -11,7 +11,7 @@ namespace ProxyCore {
 	public class HttpProxy {
 		public virtual async Task<bool> PreConnect(TcpClient client) => await Task.FromResult(true);
 		public virtual async Task<HttpRequest> PreRequest(HttpRequest request) => await Task.FromResult(request);
-		public virtual async Task<Tuple<string, ushort>> PreResolve(Tuple<string, ushort> host, HttpRequest request) => await Task.FromResult(host);
+		public virtual async Task<(string Host, ushort Port)> PreResolve((string Host, ushort Port) target, HttpRequest request) => await Task.FromResult(target);
 		public virtual async Task PostRequest(HttpRequest request, bool success) => await Task.FromResult(request);
 		public virtual async Task<HttpResponse> PreResponse(HttpResponse response, HttpRequest request) => await Task.FromResult(response);
 		public virtual async Task PostResponse(HttpResponse response, HttpRequest request) => await Task.FromResult(response);

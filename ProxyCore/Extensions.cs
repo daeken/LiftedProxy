@@ -10,8 +10,12 @@ namespace ProxyCore {
 			var ret = "";
 			var cb = new byte[1];
 			while(true) {
-				if(await stream.ReadAsync(cb, 0, 1) == 0)
-					return ret.Length == 0 ? null : ret;
+				try {
+					if(await stream.ReadAsync(cb, 0, 1) == 0)
+						return ret.Length == 0 ? null : ret;
+				} catch {
+					return ret;
+				}
 				if(cb[0] == '\n')
 					return ret + "\n";
 				ret += (char) cb[0];
