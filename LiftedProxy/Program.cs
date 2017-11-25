@@ -4,9 +4,10 @@ using ProxyCore;
 
 namespace LiftedProxy {
 	class Program {
+		public static HookProxy Proxy;
 		static void Main(string[] args) {
-			var proxy = new HttpProxy(IPAddress.Any, 12345);
-			var webapp = new WebInterface();
+			Proxy = new HookProxy(IPAddress.Any, 12345);
+			WebInterface.Setup();
 		}
 	}
 }

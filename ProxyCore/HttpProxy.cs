@@ -11,14 +11,14 @@ namespace ProxyCore {
 	public class HttpProxy {
 		public virtual async Task<bool> PreConnect(TcpClient client) => await Task.FromResult(true);
 		public virtual async Task<HttpRequest> PreRequest(HttpRequest request) => await Task.FromResult(request);
-		public virtual async Task<Tuple<string, ushort>> PreResolve(Tuple<string, ushort> host) => await Task.FromResult(host);
+		public virtual async Task<Tuple<string, ushort>> PreResolve(Tuple<string, ushort> host, HttpRequest request) => await Task.FromResult(host);
 		public virtual async Task PostRequest(HttpRequest request, bool success) => await Task.FromResult(request);
-		public virtual async Task<HttpResponse> PreResponse(HttpResponse response) => await Task.FromResult(response);
-		public virtual async Task PostResponse(HttpResponse response) => await Task.FromResult(response);
+		public virtual async Task<HttpResponse> PreResponse(HttpResponse response, HttpRequest request) => await Task.FromResult(response);
+		public virtual async Task PostResponse(HttpResponse response, HttpRequest request) => await Task.FromResult(response);
 
-		X509Certificate _serverCertificate;
-		IPAddress _listenAddress;
-		ushort _port;
+		readonly X509Certificate _serverCertificate;
+		readonly IPAddress _listenAddress;
+		readonly ushort _port;
 		
 		public HttpProxy(IPAddress listenAddress, ushort port, X509Certificate serverCert = null) {
 			_listenAddress = listenAddress;
@@ -33,7 +33,7 @@ namespace ProxyCore {
 					var client = await listener.AcceptTcpClientAsync();
 					if(await PreConnect(client) != true)
 						return;
-					Task.Factory.StartNewSafe(async () => await ClientLoop(client), TaskCreationOptions.LongRunning);
+					Task.Factory.StartNewSafeBackground(async () => await ClientLoop(client), TaskCreationOptions.LongRunning);
 				}
 			}, TaskCreationOptions.LongRunning);
 		}
@@ -55,7 +55,7 @@ namespace ProxyCore {
 				WriteLine(resp);
 				if(resp == null)
 					return;
-				resp = await PreResponse(resp);
+				resp = await PreResponse(resp, req);
 				if(resp == null)
 					return;
 
@@ -66,12 +66,14 @@ namespace ProxyCore {
 				} catch(IOException) {
 					break;
 				}
+
+				await PostResponse(resp, req);
 			}
 			WriteLine($"Connection from {client.Client.RemoteEndPoint} terminated");
 		}
 
 		async Task<HttpResponse> SendReceiveRequest(HttpRequest req) {
-			var host = await PreResolve(req.TargetHost);
+			var host = await PreResolve(req.TargetHost, req);
 			var conn = new TcpClient(host.Item1, host.Item2);
 			var cstream = conn.GetStream();
 			await cstream.WriteAsync(req.HeaderText);

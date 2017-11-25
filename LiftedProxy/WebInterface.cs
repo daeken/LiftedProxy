@@ -29,7 +29,7 @@ namespace LiftedProxy {
 	}
 	
 	public class WebInterface {
-		public WebInterface() {
+		public static void Setup() {
 			var config = new ConfigurationBuilder().AddCommandLine(new [] {"--environment", "development"}).Build();
 			var host = new WebHostBuilder()
 				.UseConfiguration(config)

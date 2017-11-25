@@ -32,6 +32,10 @@ namespace ProxyCore {
 			}, opt);
 		}
 
+		public static void StartNewSafeBackground(this TaskFactory factory, Action cb, TaskCreationOptions opt = TaskCreationOptions.None) {
+			factory.StartNewSafe(cb, opt);
+		}
+
 		public static Task WriteAsync(this Stream stream, byte[] data) {
 			return stream.WriteAsync(data, 0, data.Length);
 		}
