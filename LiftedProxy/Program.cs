@@ -3,7 +3,7 @@ using System.Net;
 using ProxyCore;
 
 namespace LiftedProxy {
-	class Program {
+	static class Program {
 		public static HookProxy Proxy;
 		static void Main(string[] args) {
 			Proxy = new HookProxy(IPAddress.Any, 12345);

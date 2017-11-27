@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Nancy;
 using Nancy.Configuration;
+using Nancy.Conventions;
 using Nancy.Owin;
 using Nancy.TinyIoc;
 using Newtonsoft.Json;
@@ -13,8 +14,8 @@ using static System.Console;
 namespace LiftedProxy {
 	public class IndexModule : NancyModule {
 		public IndexModule() {
-			Get("/", _ => "Test");
-			Get("/proxyHistory.json", _ => Response.AsJson(Persistence.GetRequests()));
+			Get("/", _ => Response.AsFile("Client/bin/Debug/bridge/index.html"));
+			Get("/api/proxyHistory", _ => Response.AsJson(Persistence.GetRequests()));
 		}
 	}
 	
@@ -25,22 +26,24 @@ namespace LiftedProxy {
 		}
 	}
 
-	public class CustomJsonSerializer : JsonSerializer {
-		
-	}
-
 	public class Bootstrapper : DefaultNancyBootstrapper {
+		public class SelfHostRootPathProvider : IRootPathProvider {
+			public string GetRootPath() => Directory.GetCurrentDirectory() + "/../";	
+		}
+		
 		public override void Configure(INancyEnvironment environment) {
 			environment.Tracing(enabled: false, displayErrorTraces: true);
 		}
 
-		protected override void ConfigureApplicationContainer(TinyIoCContainer container) {
-			base.ConfigureApplicationContainer(container);
-			container.Register<JsonSerializer, CustomJsonSerializer>();
+		protected override void ConfigureConventions(NancyConventions nancyConventions) {
+			base.ConfigureConventions(nancyConventions);
+			nancyConventions.StaticContentsConventions.AddDirectory("/", "./Client/bin/Debug/bridge/");
 		}
+
+		protected override IRootPathProvider RootPathProvider => new SelfHostRootPathProvider();
 	}
 	
-	public class WebInterface {
+	public static class WebInterface {
 		public static void Setup() {
 			var config = new ConfigurationBuilder().AddCommandLine(new [] {"--environment", "development"}).Build();
 			var host = new WebHostBuilder()
