@@ -10,8 +10,8 @@ namespace Client {
 		}
 		public jQuery RootElement { get; }
 
-		public TextComponent(string value = null) {
-			RootElement = new jQuery(Document.CreateTextNode(value ?? ""));
+		public TextComponent(string value = null, bool preformatted = false) {
+			RootElement = preformatted ? new jQuery("<pre>").Text(value ?? "") : new jQuery(Document.CreateTextNode(value ?? ""));
 		}
 
 		public static implicit operator TextComponent(string value) {

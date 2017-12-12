@@ -43,6 +43,10 @@
     "boxing": "Managed",
     "integer": "Managed",
     "lambda": "Plain"
+  },
+
+  "html": {
+      "disabled": true
   }
 
   // More config options available at

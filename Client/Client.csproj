@@ -61,6 +61,7 @@
     <Compile Include="PaneComponent.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SplitComponent.cs" />
     <Compile Include="TableComponent.cs" />
     <Compile Include="TextComponent.cs" />
   </ItemGroup>

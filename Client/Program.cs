@@ -57,10 +57,25 @@ namespace Client {
 		
 		[Ready]
 		public static async void Main() {
-			var table = new TableComponent(new [] {"URI", "Time"});
-			new jQuery(Document.Body).Append(new PaneComponent("History") { Content = table});
+			var table = new TableComponent<ProxyHistory>(new [] {"URI", "Time"});
+			var reqComponent = new PaneComponent("Request Info");
+			var root = new SplitComponent(SplitDirection.Horizontal) {
+				FirstContent = new PaneComponent("History") { Content = table},
+				SecondContent = reqComponent
+			};
+			table.Select += (_, elem) => {
+				WriteLine($"Selected {elem.httpRequest.uri}");
+				var rtable = new TableComponent<object>();
+				reqComponent.Content = rtable;
+				rtable.AddRow(
+					null, 
+					new PaneComponent("Request") { Content = new TextComponent(elem.httpRequest.headerText, true) }, 
+					new PaneComponent("Response") { Content = new TextComponent(elem.httpResponse.headerText, true) } 
+				);
+			};
+			new jQuery(Document.Body).Append(root);
 			foreach(var elem in await ProxyHistory.Fetch())
-				table.AddRow(elem.httpRequest.uri, elem.httpRequest.dateTime);
+				table.AddRow(elem, elem.httpRequest.uri, elem.httpRequest.dateTime);
 		}
 	}
 }
